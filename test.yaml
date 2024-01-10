@@ -1,0 +1,26 @@
+---
+esphome:
+  name: kilnlog
+  comment: Kiln Logger Test
+
+esp8266:
+  board: esp01
+
+logger:
+  baud_rate: 0
+
+webserver:
+  port: 80
+
+# example secrets.yaml in git, not the prod version
+wifi:
+  ssid: Telemetry_2G
+  password: !secret telemetry_pw
+  fast_connect: true  # hidden networks need this
+
+api:
+  encryption:
+    key: !secret api_pw
+
+ota:
+  password: !secret ota_pw
