@@ -2,15 +2,42 @@
 esphome:
   name: kilnlog
   comment: Kiln Logger Test
+  area: Glass Studio
+  project:
+    name: "Elwell.KilnLogger"
+    version: "0.1.0"
+  on_boot:
+    lambda: !lambda |-
+      id(run_fire).publish_state(false);
 
 esp8266:
   board: esp01
+  restore_from_flash: true
 
 logger:
   baud_rate: 0
 
-webserver:
-  port: 80
+uart:
+  tx_pin: 1
+  rx_pin: 3
+  baud_rate: 115200
+  debug:
+    direction: BOTH
+    dummy_receiver: true
+    after:
+      delimiter: "\n"
+
+
+# not enough flash for webserver on esp01
+#web_server:
+#  port: 80
+#
+#ota:
+#  password: !secret ota_pw
+
+external_components:
+  - source: github://ssieb/esphome_components
+    components: [serial_csv]
 
 # example secrets.yaml in git, not the prod version
 wifi:
@@ -22,5 +49,68 @@ api:
   encryption:
     key: !secret api_pw
 
-ota:
-  password: !secret ota_pw
+# Start by adding some sensors - if we're online then powered up. If no serial output we're in 'idle'
+binary_sensor:
+  - platform: template
+    name: Firing
+    id: run_fire
+    device_class: running
+
+sensor:
+  - platform: serial_csv
+    sensors:
+      - index: 0
+        name: ControllerType
+        # should lamda this as 0=AF4X, 1=AF4000
+      - index: 1
+        name: kilnMode
+        # 2 controllerConfig
+      - index: 3
+        name: activeProgram
+      - index: 4
+        name: segmentIndex
+      - index: 5
+        name: programState
+        # 0=Ramp state active, 1=Hold state active
+        # 6 WallTime (but no RTC installed)
+      - index: 7
+        name: FiringTime
+        device_class: duration
+        unit_of_measurement: s
+      - index: 8  # I think 8 & 9 are swapped cf documentation
+        name: Setpoint?
+        device_class: temperature
+        unit_of_measurement: °F
+      - index: 9
+        name: 'HeatWorkAdjusted / Rate?'
+      - index: 10
+        name: Average Temperature
+        device_class: temperature
+        unit_of_measurement: °F
+      - index: 11
+        name: Top Thermocouple
+        device_class: temperature
+        unit_of_measurement: °F
+      - index: 11
+        name: Mid Thermocouple
+        device_class: temperature
+        unit_of_measurement: °F
+      - index: 12
+        name: Bottom Thermocouple
+        device_class: temperature
+        unit_of_measurement: °F
+      - index: 13
+        name: Top Relay Duty Cycle
+        unit_of_measurement: '%'
+      - index: 14
+        name: Mid Relay Duty Cycle
+        unit_of_measurement: '%'
+      - index: 15
+        name: Bottom Relay Duty Cycle
+        unit_of_measurement: '%'
+      - index: 16
+        name: Active Alarm
+      - index: 17
+        name: Ambient Temp
+        device_class: temperature
+        unit_of_measurement: °F
