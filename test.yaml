@@ -1,4 +1,7 @@
 ---
+# upstream source: https://github.com/Elwell/kilnlogger
+# Andrew Elwell <Andrew.Elwell@gmail.com>, Jan 2024
+
 esphome:
   name: kilnlog
   comment: Kiln Logger Test
@@ -11,8 +14,9 @@ esphome:
       id(run_fire).publish_state(false);
 
 esp8266:
-  board: esp01
-  restore_from_flash: true
+  # board: esp01
+  board: d1_mini
+  #restore_from_flash: true
 
 logger:
   baud_rate: 0
@@ -26,12 +30,13 @@ uart:
     dummy_receiver: true
     after:
       delimiter: "\n"
-
+    sequence:
+      - lambda: UARTDebug::log_string(direction, bytes);
 
 # not enough flash for webserver on esp01
-#web_server:
-#  port: 80
-#
+web_server:
+  port: 80
+
 #ota:
 #  password: !secret ota_pw
 
@@ -41,13 +46,13 @@ external_components:
 
 # example secrets.yaml in git, not the prod version
 wifi:
-  ssid: Telemetry_2G
-  password: !secret telemetry_pw
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
   fast_connect: true  # hidden networks need this
 
-api:
-  encryption:
-    key: !secret api_pw
+#api:
+#  encryption:
+#    key: !secret api_pw
 
 # Start by adding some sensors - if we're online then powered up. If no serial output we're in 'idle'
 binary_sensor:
@@ -56,12 +61,16 @@ binary_sensor:
     id: run_fire
     device_class: running
 
+# Once the kiln is runnning, the UART sends 21 comma separated values. See README.md in the repo
 sensor:
   - platform: serial_csv
     sensors:
       - index: 0
         name: ControllerType
-        # should lamda this as 0=AF4X, 1=AF4000
+#        filters:
+#          - map:
+#            - 0 -> AF4X
+#            - 1 -> AF4000
       - index: 1
         name: kilnMode
         # 2 controllerConfig
@@ -78,7 +87,7 @@ sensor:
         device_class: duration
         unit_of_measurement: s
       - index: 8  # I think 8 & 9 are swapped cf documentation
-        name: Setpoint?
+        name: Setpoint
         device_class: temperature
         unit_of_measurement: °F
       - index: 9
